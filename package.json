@@ -1,0 +1,18 @@
+{
+  "name": "finreal-breal-payments",
+  "version": "1.0.0",
+  "description": "BReal SPL Token deployment on Solana Devnet",
+  "scripts": {
+    "create-token": "ts-node scripts/create-token.ts",
+    "mint-token": "ts-node scripts/mint-token.ts"
+  },
+  "dependencies": {
+    "@solana/spl-token": "^0.4.9",
+    "@solana/web3.js": "^1.98.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
+  }
+}
