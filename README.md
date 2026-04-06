@@ -1,12 +1,15 @@
 # BReal Token (BREAL)
 
-Reference implementation for deploying the BReal (BREAL) SPL token on Solana Devnet.
+Reference implementation for deploying the BReal (BREAL) SPL token on Solana Devnet and running a local terminal-style payment simulation.
 
 ## Overview
 
-This repository contains the core scripts required to create the BReal token mint, configure token authorities, create the Associated Token Account (ATA), and mint the initial token supply.
+This repository includes two main components:
 
-Built with `@solana/web3.js` and `@solana/spl-token`.
+Token deployment (`/scripts`): TypeScript scripts that create the BReal SPL token mint, configure authorities, create the deployer's Associated Token Account, and mint the initial supply.
+
+Payment terminal (`/app`): A browser-based terminal UI that simulates an ATM or kiosk payment environment. It accepts BREAL payments from connected wallets, generates Solana Pay QR codes, and detects on-chain transactions via RPC polling.
+
 
 ## Token Configuration
 
@@ -20,6 +23,7 @@ Built with `@solana/web3.js` and `@solana/spl-token`.
 | Mint Authority | Deployer wallet |
 | Freeze Authority | Deployer wallet |
 | Network | Solana Devnet |
+
 
 ## Prerequisites
 
@@ -43,22 +47,18 @@ Download the installer from: https://github.com/anza-xyz/agave/releases/latest
 sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
 ```
 
-## Setup
 
-**1. Clone the repository**
+## Part 1: Token Deployment
 
-```bash
-git clone https://github.com/MegalodonLabs/finreal-breal-payments.git
-cd finreal-breal-payments
-```
+### Setup
 
-**2. Install dependencies**
+1. Install dependencies
 
 ```bash
 npm install
 ```
 
-**3. Create a local wallet**
+2. Create a local wallet
 
 ```bash
 solana-keygen new --outfile ~/.config/solana/id.json
@@ -66,13 +66,13 @@ solana-keygen new --outfile ~/.config/solana/id.json
 
 Store the seed phrase in a safe location. This wallet is used as the mint authority, freeze authority, and transaction payer.
 
-**4. Configure the network**
+3. Configure the network
 
 ```bash
 solana config set --url https://api.devnet.solana.com
 ```
 
-**5. Fund the wallet**
+4. Fund the wallet
 
 ```bash
 solana airdrop 2
@@ -81,11 +81,11 @@ solana balance
 
 If the CLI airdrop is rate-limited, use the web faucet at https://faucet.solana.com. A minimum of 0.05 SOL is required to cover transaction fees.
 
-## Usage
+### Run
 
-Run the commands below in sequence.
+Run the following commands in sequence.
 
-**1. Deploy the token mint**
+1. Deploy the token mint
 
 ```bash
 npm run create-token
@@ -93,7 +93,7 @@ npm run create-token
 
 Creates the BReal token mint with the configured decimals and authorities. Saves the mint address to `mint-address.json`.
 
-**2. Create the ATA and mint initial supply**
+2. Create the ATA and mint initial supply
 
 ```bash
 npm run mint-token
@@ -101,7 +101,7 @@ npm run mint-token
 
 Creates the Associated Token Account (ATA) for the deployer wallet and mints 1,000,000 BREAL to it.
 
-## Expected Output
+### Expected Output
 
 **create-token**
 
@@ -110,18 +110,8 @@ Deploying BReal (BREAL) on Solana devnet...
 
 RPC endpoint     : https://api.devnet.solana.com
 Deployer wallet  : <WALLET_ADDRESS>
-Wallet balance   : 5 SOL
-
-Creating mint...
-   Name     : BReal
-   Symbol   : BREAL
-   Decimals : 6
-   Mint auth: <WALLET_ADDRESS>
-   Freeze   : <WALLET_ADDRESS>
-
 Token mint created.
 Mint Address     : <MINT_ADDRESS>
-
 Mint address saved to mint-address.json
 ```
 
@@ -130,23 +120,83 @@ Mint address saved to mint-address.json
 ```
 Minting 1,000,000 BREAL on Solana devnet...
 
-RPC endpoint     : https://api.devnet.solana.com
-Deployer wallet  : <WALLET_ADDRESS>
-Mint address     : <MINT_ADDRESS>
-
-Associated Token Account ready.
-ATA Address      : <ATA_ADDRESS>
-
-Mint successful.
-Mint Address     : <MINT_ADDRESS>
 ATA Address      : <ATA_ADDRESS>
 Mint Tx          : <TX_SIGNATURE>
 Explorer         : https://explorer.solana.com/tx/<TX_SIGNATURE>?cluster=devnet
 ```
 
+
+## Part 2: Payment Terminal
+
+A terminal-style interface that simulates an ATM or kiosk. The deployer wallet acts as the merchant. A separate wallet is used as the payer.
+
+### Fund a Test Wallet
+
+Before testing payments, the payer wallet must hold BREAL.
+
+Open `scripts/fund-test-wallet.ts` and replace the `RECIPIENT` value with the public key of your test wallet:
+
+```ts
+const RECIPIENT = "<PASTE_RECIPIENT_WALLET_ADDRESS_HERE>";
+```
+
+Then run:
+
+```bash
+$env:SOLANA_RPC_URL="https://api.devnet.solana.com"   # PowerShell
+npx ts-node scripts/fund-test-wallet.ts
+```
+
+This transfers 1,000 BREAL from the deployer wallet to the recipient. The script automatically creates the recipient's ATA if it does not exist.
+
+The recipient wallet also needs a small SOL balance to cover transaction fees. Use the faucet at https://faucet.solana.com if needed.
+
+### Run the Terminal
+
+```bash
+cd app
+npm install --legacy-peer-deps
+npm run dev
+```
+
+The terminal is available at `http://localhost:5173`.
+
+To access it from another device on the same network (e.g. a mobile browser):
+
+```bash
+npm run dev -- --host
+```
+
+Then open the `Network` URL shown in the terminal output on the other device.
+
+### Recommended Demo Flow
+
+1. Open the terminal at `http://localhost:5173` (or the network address on mobile)
+2. Enter a payment amount in BREAL
+3. Click **Generate Payment Request**
+4. Connect the payer wallet using the **Connect Wallet** button
+5. Click **Pay** and confirm the transaction in the wallet
+6. The terminal detects the on-chain payment automatically and transitions to the success screen
+7. Click **View on Explorer** to verify the transaction on Solana Explorer
+
+### Payment Detection
+
+The terminal does not use a backend or websockets. When a payment request is created, it snapshots the merchant ATA balance and polls the RPC every 3 seconds. When the balance increases by at least the requested amount, the session transitions to success. If no payment is received within 2 minutes, the session times out.
+
+### QR Code
+
+Each payment request generates a QR code encoded using the Solana Pay Transfer Request specification via the `@solana/pay` library:
+
+```
+solana:<recipient>?amount=<amount>&spl-token=<mint>&label=BReal%20ATM&message=...
+```
+
+This format is compatible with major Solana wallets on mainnet. On devnet, mobile wallet QR scanners may not fully support SPL token Solana Pay flows. Some apps treat the full URI as a plain text address instead of parsing it as a payment request. The browser wallet flow is the recommended path for local devnet testing.
+
+
 ## Verification
 
-Confirm the deployment on Solana Explorer using the links below:
+Confirm the deployment on Solana Explorer:
 
 **Transaction**
 ```
@@ -163,7 +213,8 @@ https://explorer.solana.com/address/<MINT_ADDRESS>?cluster=devnet
 https://explorer.solana.com/address/<ATA_ADDRESS>?cluster=devnet
 ```
 
-These links confirm the deployed token mint, token account, and transaction on Solana Devnet.
+These links confirm the deployed token mint, token account, and transaction.
+
 
 ## Deployment Reference
 
@@ -174,24 +225,45 @@ These links confirm the deployed token mint, token account, and transaction on S
 | Mint Transaction | `3zpWkF8Z5aXTPQFGxRyn3PoUFoxvnq1zES7Kaa5KCH4YE7L3Rz13PeacxSaYApPQZaZv6YDovSqXoMcgrSxk82c9` |
 | Explorer | [View on Solana Explorer](https://explorer.solana.com/tx/3zpWkF8Z5aXTPQFGxRyn3PoUFoxvnq1zES7Kaa5KCH4YE7L3Rz13PeacxSaYApPQZaZv6YDovSqXoMcgrSxk82c9?cluster=devnet) |
 
+
 ## Project Structure
 
 ```
 finreal-breal-payments/
 ├── scripts/
 │   ├── create-token.ts
-│   └── mint-token.ts
+│   ├── mint-token.ts
+│   └── fund-test-wallet.ts
+├── app/
+│   ├── src/
+│   │   ├── App.tsx
+│   │   ├── main.tsx
+│   │   ├── config.ts
+│   │   ├── terminal.css
+│   │   └── hooks/
+│   │       └── usePaymentDetection.ts
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.ts
+│   └── tsconfig.json
 ├── mint-address.json
 ├── package.json
 ├── tsconfig.json
 └── README.md
 ```
 
-- `scripts/create-token.ts`: creates the BReal token mint, sets mint and freeze authorities, and saves the mint address to `mint-address.json`.
-- `scripts/mint-token.ts`: reads the mint address from `mint-address.json`, creates the Associated Token Account (ATA) for the deployer wallet if it does not already exist, and mints 1,000,000 BREAL to it.
+- `scripts/create-token.ts`: deploys the BReal token mint and sets authorities.
+- `scripts/mint-token.ts`: creates the deployer ATA and mints 1,000,000 BREAL.
+- `scripts/fund-test-wallet.ts`: transfers BREAL from the deployer wallet to a test wallet for payment testing.
+- `app/src/App.tsx`: full terminal UI with payment state machine.
+- `app/src/hooks/usePaymentDetection.ts`: RPC polling logic for on-chain payment detection.
+- `app/src/config.ts`: token, merchant, and network constants.
 - `mint-address.json`: auto-generated by `create-token.ts`. Required by `mint-token.ts`.
 
+
 ## Dependencies
+
+### Token scripts
 
 | Package | Version | Purpose |
 |---|---|---|
@@ -199,3 +271,19 @@ finreal-breal-payments/
 | `@solana/spl-token` | ^0.4.9 | SPL token program instructions |
 | `ts-node` | ^10.9.2 | Run TypeScript scripts without a build step |
 | `typescript` | ^5.7.0 | TypeScript compiler |
+
+### Payment terminal
+
+| Package | Version | Purpose |
+|---|---|---|
+| `@solana/web3.js` | ^1.98.0 | Solana RPC client |
+| `@solana/spl-token` | ^0.4.9 | Token transfer instructions |
+| `@solana/pay` | ^0.2.5 | Solana Pay URL encoding |
+| `@solana/wallet-adapter-react` | ^0.15.35 | Wallet connection hooks |
+| `@solana/wallet-adapter-react-ui` | ^0.9.35 | Wallet connect button |
+| `@solana/wallet-adapter-phantom` | ^0.9.24 | Phantom wallet adapter |
+| `@solana/wallet-adapter-solflare` | ^0.6.28 | Solflare wallet adapter |
+| `qrcode.react` | ^4.1.0 | QR code rendering |
+| `bignumber.js` | ^9.1.2 | Precise decimal amounts for Solana Pay |
+| `react` / `react-dom` | ^18.3.1 | UI framework |
+| `vite` | ^5.4.0 | Development server and build tool |

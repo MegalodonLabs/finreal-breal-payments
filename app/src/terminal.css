@@ -1,0 +1,375 @@
+/* ── Reset ─────────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* ── Root ──────────────────────────────────────────────────────────────────── */
+body {
+  background: #050200;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Share Tech Mono', 'Courier New', Courier, monospace;
+  color: #f59e0b;
+}
+
+/* ── Terminal shell ────────────────────────────────────────────────────────── */
+.terminal {
+  width: 480px;
+  border: 2px solid #f59e0b;
+  background: #060400;
+  box-shadow:
+    0 0 24px rgba(245, 158, 11, 0.25),
+    inset 0 0 40px rgba(245, 158, 11, 0.03);
+  position: relative;
+}
+
+/* CRT scanline overlay */
+.terminal::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 3px,
+    rgba(0, 0, 0, 0.06) 3px,
+    rgba(0, 0, 0, 0.06) 4px
+  );
+  pointer-events: none;
+  z-index: 100;
+}
+
+/* ── Header bar ────────────────────────────────────────────────────────────── */
+.t-header {
+  background: #f59e0b;
+  color: #060400;
+  text-align: center;
+  padding: 9px 16px;
+  font-size: 13px;
+  letter-spacing: 5px;
+  font-weight: 700;
+  user-select: none;
+}
+
+/* ── Info row ──────────────────────────────────────────────────────────────── */
+.t-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.t-meta-cell {
+  padding: 10px 16px;
+  border-right: 1px solid rgba(245, 158, 11, 0.15);
+}
+
+.t-meta-cell:nth-child(even) {
+  border-right: none;
+}
+
+.t-label {
+  font-size: 10px;
+  letter-spacing: 2px;
+  color: rgba(245, 158, 11, 0.5);
+  margin-bottom: 3px;
+}
+
+.t-value {
+  font-size: 12px;
+  color: #f59e0b;
+  word-break: break-all;
+}
+
+/* ── Body ──────────────────────────────────────────────────────────────────── */
+.t-body {
+  padding: 24px 20px;
+}
+
+.t-prompt {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: rgba(245, 158, 11, 0.65);
+  margin-bottom: 14px;
+}
+
+/* ── Amount input ──────────────────────────────────────────────────────────── */
+.t-input-box {
+  border: 1px solid #f59e0b;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  margin-bottom: 20px;
+  background: rgba(245, 158, 11, 0.04);
+}
+
+.t-input-box input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f59e0b;
+  font-family: inherit;
+  font-size: 26px;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.t-input-box input::placeholder {
+  color: rgba(245, 158, 11, 0.25);
+}
+
+/* remove number input arrows */
+.t-input-box input::-webkit-outer-spin-button,
+.t-input-box input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.t-cursor-blink {
+  display: inline-block;
+  width: 3px;
+  height: 26px;
+  background: #f59e0b;
+  animation: blink 1s step-end infinite;
+  vertical-align: middle;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Buttons ───────────────────────────────────────────────────────────────── */
+.t-btn {
+  background: transparent;
+  border: 1px solid #f59e0b;
+  color: #f59e0b;
+  font-family: inherit;
+  font-size: 12px;
+  letter-spacing: 2px;
+  padding: 11px 20px;
+  cursor: pointer;
+  width: 100%;
+  transition: background 0.1s, color 0.1s;
+  display: block;
+}
+
+.t-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.t-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.t-btn + .t-btn {
+  margin-top: 8px;
+}
+
+.t-btn-ghost {
+  border-color: rgba(245, 158, 11, 0.3);
+  color: rgba(245, 158, 11, 0.5);
+}
+
+.t-btn-ghost:hover:not(:disabled) {
+  border-color: #f59e0b;
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.08);
+}
+
+/* ── Error ─────────────────────────────────────────────────────────────────── */
+.t-error {
+  color: #f87171;
+  font-size: 11px;
+  letter-spacing: 1px;
+  margin: 10px 0;
+  min-height: 18px;
+}
+
+/* ── Section divider ───────────────────────────────────────────────────────── */
+.t-divider {
+  border: none;
+  border-top: 1px solid rgba(245, 158, 11, 0.2);
+  margin: 16px 0;
+}
+
+/* ── Awaiting screen ───────────────────────────────────────────────────────── */
+.t-amount-bar {
+  padding: 12px 20px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.t-amount-large {
+  font-size: 22px;
+  letter-spacing: 2px;
+}
+
+.t-qr-section {
+  padding: 16px 20px 8px;
+}
+
+.t-qr-frame {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  background: #ffffff;
+  border: 2px solid rgba(245, 158, 11, 0.4);
+  margin-top: 10px;
+}
+
+.t-wallet-section {
+  padding: 12px 20px 16px;
+}
+
+/* ── Status bar ────────────────────────────────────────────────────────────── */
+.t-status-bar {
+  padding: 10px 20px;
+  background: rgba(245, 158, 11, 0.04);
+  border-top: 1px solid rgba(245, 158, 11, 0.2);
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  letter-spacing: 1.5px;
+}
+
+.t-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #f59e0b;
+  margin-right: 8px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1);   }
+  50%       { opacity: 0.3; transform: scale(0.8); }
+}
+
+.t-dot-success { background: #4ade80; animation: none; }
+.t-dot-fail    { background: #f87171; animation: none; }
+
+/* ── Progress bar ──────────────────────────────────────────────────────────── */
+.t-progress-track {
+  height: 3px;
+  background: rgba(245, 158, 11, 0.15);
+}
+
+.t-progress-fill {
+  height: 100%;
+  background: #f59e0b;
+  transition: width 1s linear;
+}
+
+/* ── Result screens ────────────────────────────────────────────────────────── */
+.t-result {
+  padding: 36px 20px 28px;
+  text-align: center;
+}
+
+.t-result-icon {
+  font-size: 52px;
+  margin-bottom: 14px;
+  line-height: 1;
+}
+
+.t-result-title {
+  font-size: 16px;
+  letter-spacing: 4px;
+  margin-bottom: 8px;
+}
+
+.t-result-amount {
+  font-size: 20px;
+  margin-bottom: 20px;
+}
+
+.t-result-tx {
+  margin: 0 auto 24px;
+  max-width: 380px;
+  text-align: left;
+}
+
+.t-success { color: #4ade80; }
+.t-fail    { color: #f87171; }
+
+/* ── Footer ────────────────────────────────────────────────────────────────── */
+.t-footer {
+  padding: 8px 20px;
+  border-top: 1px solid rgba(245, 158, 11, 0.15);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: rgba(245, 158, 11, 0.3);
+  text-align: center;
+}
+
+/* ── Wallet adapter overrides ──────────────────────────────────────────────── */
+.wallet-adapter-button {
+  background: transparent !important;
+  border: 1px solid #f59e0b !important;
+  color: #f59e0b !important;
+  font-family: 'Share Tech Mono', 'Courier New', monospace !important;
+  font-size: 12px !important;
+  letter-spacing: 2px !important;
+  height: auto !important;
+  padding: 11px 20px !important;
+  width: 100% !important;
+  justify-content: center !important;
+  border-radius: 0 !important;
+  transition: background 0.1s !important;
+}
+
+.wallet-adapter-button:hover {
+  background: rgba(245, 158, 11, 0.15) !important;
+}
+
+.wallet-adapter-button-start-icon {
+  display: none !important;
+}
+
+.wallet-adapter-modal-wrapper {
+  background: #060400 !important;
+  border: 1px solid rgba(245, 158, 11, 0.5) !important;
+  border-radius: 0 !important;
+  font-family: 'Share Tech Mono', monospace !important;
+}
+
+.wallet-adapter-modal-title {
+  color: #f59e0b !important;
+  font-family: inherit !important;
+}
+
+.wallet-adapter-modal-list li {
+  background: transparent !important;
+  border: 1px solid rgba(245, 158, 11, 0.25) !important;
+  color: #f59e0b !important;
+  border-radius: 0 !important;
+  margin-bottom: 6px !important;
+}
+
+.wallet-adapter-modal-list li:hover {
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+
+.wallet-adapter-modal-list-more-button {
+  color: rgba(245, 158, 11, 0.6) !important;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────────── */
+@media (max-width: 520px) {
+  .terminal {
+    width: 100%;
+    min-height: 100vh;
+    border-left: none;
+    border-right: none;
+  }
+}
