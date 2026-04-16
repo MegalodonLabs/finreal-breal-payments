@@ -10,6 +10,8 @@ Token deployment (`/scripts`): TypeScript scripts that create the BReal SPL toke
 
 Payment terminal (`/app`): A browser-based terminal UI that simulates an ATM or kiosk payment environment. It accepts BREAL payments from connected wallets, generates Solana Pay QR codes, and detects on-chain transactions via RPC polling.
 
+This project demonstrates a complete end-to-end stablecoin payment flow on Solana, including token issuance, wallet-based payments, and real-time settlement detection.
+
 
 ## Token Configuration
 
@@ -171,13 +173,19 @@ Then open the `Network` URL shown in the terminal output on the other device.
 
 ### Recommended Demo Flow
 
-1. Open the terminal at `http://localhost:5173` (or the network address on mobile)
-2. Enter a payment amount in BREAL
-3. Click **Generate Payment Request**
-4. Connect the payer wallet using the **Connect Wallet** button
-5. Click **Pay** and confirm the transaction in the wallet
-6. The terminal detects the on-chain payment automatically and transitions to the success screen
-7. Click **View on Explorer** to verify the transaction on Solana Explorer
+**Before starting, ensure the following:**
+- The payer wallet must hold BREAL on devnet. Use `fund-test-wallet.ts` to transfer tokens from the deployer wallet (see [Fund a Test Wallet](#fund-a-test-wallet)).
+- The payer wallet must also hold a small SOL balance to cover transaction fees. Use https://faucet.solana.com if needed.
+
+**Steps:**
+
+1. Open the terminal at `http://localhost:5173`
+2. Enter a payment amount in BREAL and click **Generate Payment Request**
+3. Click **Connect Wallet** and select a supported wallet (Phantom or Solflare)
+4. Click **Pay** and confirm the transaction in the wallet popup
+5. The terminal polls the RPC automatically. No manual action is required.
+6. When the on-chain balance change is detected, the terminal transitions to the success screen, displaying the transaction signature and a **View on Explorer** link
+7. Click **View on Explorer** to verify the transaction on Solana Explorer (select Devnet in the cluster selector if needed)
 
 ### Payment Detection
 
@@ -192,6 +200,44 @@ solana:<recipient>?amount=<amount>&spl-token=<mint>&label=BReal%20ATM&message=..
 ```
 
 This format is compatible with major Solana wallets on mainnet. On devnet, mobile wallet QR scanners may not fully support SPL token Solana Pay flows. Some apps treat the full URI as a plain text address instead of parsing it as a payment request. The browser wallet flow is the recommended path for local devnet testing.
+
+
+## Transaction Flow
+
+1. The operator enters a BREAL amount and submits the payment request
+2. The app snapshots the merchant ATA balance and generates a Solana Pay QR code
+3. The payer connects their wallet using the Connect Wallet button
+4. The payer clicks Pay and confirms the transaction in their wallet
+5. The SPL token program transfers the specified BREAL amount to the merchant ATA
+6. The app detects the balance increase via RPC polling (`getTokenAccountBalance` every 3 seconds)
+7. The UI transitions to the success state and displays the transaction signature with a link to the Solana Explorer
+
+
+## Architecture
+
+### Token Setup
+
+The deployment creates the token mint and the deployer's Associated Token Account (ATA). The mint account (`9yC8...Xr8`) defines the token: symbol, decimals, mint authority, and freeze authority. The ATA (`3uzK...c6`) is derived deterministically from the mint and the deployer's public key, and holds the token balance for that wallet.
+
+### Frontend Terminal Flow
+
+The app is implemented as a simple state machine with four states: idle, awaiting, success, and timeout. On idle, the user enters an amount. On submit, the app snapshots the current merchant ATA balance and transitions to awaiting, displaying the payment UI.
+
+### Payment Execution
+
+Two payment paths are supported. With a connected browser wallet (Phantom or Solflare), the app constructs a transfer instruction using `@solana/spl-token` and submits it directly via the wallet adapter. For mobile, a Solana Pay Transfer Request URL is encoded with `@solana/pay` and rendered as a QR code.
+
+### On-Chain Detection
+
+No backend is used. `usePaymentDetection.ts` polls `getTokenAccountBalance` on the merchant ATA every 3 seconds. When the balance increases by at least the requested amount, the session transitions to `success`. If the threshold is not met within 120 seconds, the session times out.
+
+### Accounts Involved
+
+| Role | Account |
+|---|---|
+| Merchant ATA | `3uzKCkxtcTmorMAhzCcoVdLB6fAD3Y7k28cYhr32j9c6` |
+| Payer wallet | Any wallet holding BREAL on devnet |
+| Token mint | `9yC8LkyqpCFtXyBpEGBfrRtYu4nVc4VS3JGQQJmgJXr8` |
 
 
 ## Verification
